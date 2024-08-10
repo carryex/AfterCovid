@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Text, View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { Text, View, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { Position } from '../types';
-import { GRID_SIZE, MINE_POSITION, generateLandscape, generateSectorElements } from '../constants/generateLandscape';
+import { GRID_SIZE, generateLandscape, generateSectorElements } from '../constants/generateLandscape';
+import MiniMap from '@/components/World/MiniMap';
+
 
 const DUNGEON_SIZE = 100;
-const VISIBLE_RADIUS = 3;  // Уменьшили радиус видимости до 3 клеток
+const VISIBLE_RADIUS = 3;
 
 const getScreenSize = () => {
   const { width, height } = Dimensions.get('window');
@@ -21,7 +23,7 @@ export default function Index() {
   const [playerPosition, setPlayerPosition] = useState<Position>({ x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) });
   const [gameState, setGameState] = useState<GameState>(GameState.World);
   const [landscape, setLandscape] = useState(generateLandscape());
-  const [dungeonPosition, setDungeonPosition] = useState<Position>({ x: 50, y: 50 }); // Начальная позиция в подземелье
+  const [dungeonPosition, setDungeonPosition] = useState<Position>({ x: 50, y: 50 });
   const [screenSize, setScreenSize] = useState(getScreenSize());
 
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function Index() {
 
   const handleMineClick = () => {
     setGameState(GameState.Dungeon);
-    setDungeonPosition({ x: 50, y: 50 }); // Перемещение игрока в начальную точку подземелья
+    setDungeonPosition({ x: 50, y: 50 });
   };
 
   const renderWorld = () => {
@@ -112,24 +114,6 @@ export default function Index() {
     return <View style={styles.dungeonMap}>{visibleRooms}</View>;
   };
 
-  const renderMiniMap = () => {
-    const segments = [];
-    for (let y = playerPosition.y - 1; y <= playerPosition.y + 1; y++) {
-      for (let x = playerPosition.x - 1; x <= playerPosition.x + 1; x++) {
-        segments.push(
-          <TouchableOpacity
-            key={`${x},${y}`}
-            style={[styles.mapSegment, { backgroundColor: x === playerPosition.x && y === playerPosition.y ? 'blue' : 'lightgrey' }]}
-            onPress={() => movePlayer(x - playerPosition.x, y - playerPosition.y)}
-          >
-            <Text style={styles.segmentText}>{`${x},${y}`}</Text>
-          </TouchableOpacity>
-        );
-      }
-    }
-    return <View style={styles.miniMap}>{segments}</View>;
-  };
-
   return (
     <View style={styles.container}>
       {gameState === GameState.World ? (
@@ -138,7 +122,7 @@ export default function Index() {
           <View style={[styles.landscapeContainer, { width: screenSize, height: screenSize }]}>
             {renderWorld()}
           </View>
-          {renderMiniMap()}
+          <MiniMap playerPosition={playerPosition} movePlayer={movePlayer} />
         </>
       ) : (
         <>
@@ -178,28 +162,6 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: 'green',
   },
-  miniMap: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 152,
-    height: 152,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  mapSegment: {
-    width: 50,
-    height: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#000',
-  },
-  segmentText: {
-    fontSize: 10,
-  },
   mine: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -210,7 +172,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   dungeonMap: {
-    flex: 1, // Занимает все доступное пространство
+    flex: 1,
     position: 'relative',
     width: '100%',
     height: '100%',
@@ -220,7 +182,7 @@ const styles = StyleSheet.create({
   },
   dungeonRoom: {
     position: 'absolute',
-    width: `${100 / (VISIBLE_RADIUS * 2 + 1)}%`, // Рассчитывает размер каждой комнаты относительно контейнера
+    width: `${100 / (VISIBLE_RADIUS * 2 + 1)}%`,
     height: `${100 / (VISIBLE_RADIUS * 2 + 1)}%`,
     justifyContent: 'center',
     alignItems: 'center',
