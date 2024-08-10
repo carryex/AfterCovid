@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Dimensions } from 'react-native';
 import { Position } from '../types';
 import { GRID_SIZE } from '../constants/generateLandscape';
-import World from '@/components/World/World';
+import Dungeon from '@/components/Dungeon/Dungeon';
 import MiniMap from '@/components/World/MiniMap';
-import Dungeon, { DUNGEON_SIZE } from '@/components/Dungeon/Dungeon';
+import World from '@/components/World/World';
 
-
+const DUNGEON_SIZE = 100;
 const getScreenSize = () => {
   const { width, height } = Dimensions.get('window');
   const size = Math.min(width, height) * 0.8;
@@ -33,15 +33,15 @@ export default function Index() {
   const movePlayer = (dx: number, dy: number) => {
     if (gameState === GameState.World) {
       setPlayerPosition(prevPosition => {
-        const newX = Math.min(Math.max(prevPosition.x + dx, 0), GRID_SIZE - 1);
-        const newY = Math.min(Math.max(prevPosition.y + dy, 0), GRID_SIZE - 1);
-        return { x: newX, y: newY };
+        const newX = prevPosition.x + dx;
+        const newY = prevPosition.y + dy;
+        return { x: Math.min(Math.max(newX, 0), GRID_SIZE - 1), y: Math.min(Math.max(newY, 0), GRID_SIZE - 1) };
       });
     } else if (gameState === GameState.Dungeon) {
       setDungeonPosition(prevPosition => {
-        const newX = Math.min(Math.max(prevPosition.x + dx, 0), DUNGEON_SIZE - 1);
-        const newY = Math.min(Math.max(prevPosition.y + dy, 0), DUNGEON_SIZE - 1);
-        return { x: newX, y: newY };
+        const newX = prevPosition.x + dx;
+        const newY = prevPosition.y + dy;
+        return { x: Math.min(Math.max(newX, 0), DUNGEON_SIZE - 1), y: Math.min(Math.max(newY, 0), DUNGEON_SIZE - 1) };
       });
     }
   };

@@ -3,32 +3,43 @@ import { Position } from '@/types';
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 
+
 interface DungeonProps {
   dungeonPosition: Position;
   movePlayer: (dx: number, dy: number) => void;
 }
 
-export const DUNGEON_SIZE = 100;
+const DUNGEON_SIZE = 100;
 const VISIBLE_RADIUS = 3;
 
 const Dungeon: React.FC<DungeonProps> = ({ dungeonPosition, movePlayer }) => {
+  const isAdjacent = (x: number, y: number) => {
+    const dx = Math.abs(x - dungeonPosition.x);
+    const dy = Math.abs(y - dungeonPosition.y);
+    return (dx <= 1 && dy <= 1);
+  };
+
   const renderDungeon = () => {
     const visibleRooms = [];
     for (let y = dungeonPosition.y - VISIBLE_RADIUS; y <= dungeonPosition.y + VISIBLE_RADIUS; y++) {
       for (let x = dungeonPosition.x - VISIBLE_RADIUS; x <= dungeonPosition.x + VISIBLE_RADIUS; x++) {
         if (x >= 0 && y >= 0 && x < DUNGEON_SIZE && y < DUNGEON_SIZE) {
+          const isCurrent = x === dungeonPosition.x && y === dungeonPosition.y;
+          const canMove = isAdjacent(x, y);
           visibleRooms.push(
             <TouchableOpacity
               key={`${x}-${y}`}
               style={[
                 styles.dungeonRoom,
                 {
-                  backgroundColor: x === dungeonPosition.x && y === dungeonPosition.y ? 'blue' : 'gray',
+                  backgroundColor: isCurrent ? 'blue' : canMove ? 'darkgray' : 'gray',
                   top: `${(y - (dungeonPosition.y - VISIBLE_RADIUS)) * (100 / (VISIBLE_RADIUS * 2 + 1))}%`,
                   left: `${(x - (dungeonPosition.x - VISIBLE_RADIUS)) * (100 / (VISIBLE_RADIUS * 2 + 1))}%`,
+                  opacity: canMove ? 1 : 0.5,
                 },
               ]}
-              onPress={() => movePlayer(x - dungeonPosition.x, y - dungeonPosition.y)}
+              onPress={() => canMove && movePlayer(x - dungeonPosition.x, y - dungeonPosition.y)}
+              disabled={!canMove}
             >
               <Text style={styles.roomText}>{`${x},${y}`}</Text>
             </TouchableOpacity>
