@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Dimensions } from 'react-native';
 import { Position } from '../types';
-import { GRID_SIZE } from '../constants/generateLandscape';
+import { generateLandscape, GRID_SIZE } from '../constants/generateLandscape';
 import Dungeon from '@/components/Dungeon/Dungeon';
 import MiniMap from '@/components/World/MiniMap';
 import World from '@/components/World/World';
+import dungeonsConfig from '@/constants/dungeonsConfig';
 
-const DUNGEON_SIZE = 100;
+
 const getScreenSize = () => {
   const { width, height } = Dimensions.get('window');
   const size = Math.min(width, height) * 0.8;
@@ -21,6 +22,7 @@ enum GameState {
 export default function Index() {
   const [playerPosition, setPlayerPosition] = useState<Position>({ x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) });
   const [gameState, setGameState] = useState<GameState>(GameState.World);
+  const [currentDungeon, setCurrentDungeon] = useState<null | typeof dungeonsConfig[0]>(null);
   const [dungeonPosition, setDungeonPosition] = useState<Position>({ x: 50, y: 50 });
   const [screenSize, setScreenSize] = useState(getScreenSize());
 
@@ -37,18 +39,34 @@ export default function Index() {
         const newY = prevPosition.y + dy;
         return { x: Math.min(Math.max(newX, 0), GRID_SIZE - 1), y: Math.min(Math.max(newY, 0), GRID_SIZE - 1) };
       });
-    } else if (gameState === GameState.Dungeon) {
+    } else if (gameState === GameState.Dungeon && currentDungeon) {
       setDungeonPosition(prevPosition => {
         const newX = prevPosition.x + dx;
         const newY = prevPosition.y + dy;
-        return { x: Math.min(Math.max(newX, 0), DUNGEON_SIZE - 1), y: Math.min(Math.max(newY, 0), DUNGEON_SIZE - 1) };
+        return { x: Math.min(Math.max(newX, 0), currentDungeon.size - 1), y: Math.min(Math.max(newY, 0), currentDungeon.size - 1) };
       });
     }
   };
 
   const handleMineClick = () => {
     setGameState(GameState.Dungeon);
-    setDungeonPosition({ x: 50, y: 50 });
+
+    if (playerPosition.x === 50 && playerPosition.y === 51) {
+      // Генерация случайного подземелья
+      setCurrentDungeon({
+        name: 'Generated Dungeon',
+        size: 100,
+        walls: new Set(), // Без стен для случайного подземелья
+        startRoom: { x: 50, y: 50 },
+      });
+      setDungeonPosition({ x: 50, y: 50 });
+    } else {
+      // Выбор подземелья из заранее созданных
+      const dungeonIndex = (playerPosition.x - 50) + (playerPosition.y - 50);
+      const selectedDungeon = dungeonsConfig[dungeonIndex % dungeonsConfig.length];
+      setCurrentDungeon(selectedDungeon);
+      setDungeonPosition(selectedDungeon.startRoom);
+    }
   };
 
   return (
@@ -61,14 +79,15 @@ export default function Index() {
           </View>
           <MiniMap playerPosition={playerPosition} movePlayer={movePlayer} />
         </>
-      ) : (
+      ) : currentDungeon ? (
         <>
+          <Text>Dungeon: {currentDungeon.name}</Text>
           <Text>Dungeon Position: ({dungeonPosition.x}, {dungeonPosition.y})</Text>
           <View style={[styles.landscapeContainer, { width: screenSize, height: screenSize }]}>
-            <Dungeon dungeonPosition={dungeonPosition} movePlayer={movePlayer} />
+            <Dungeon dungeonConfig={currentDungeon} dungeonPosition={dungeonPosition} movePlayer={movePlayer} />
           </View>
         </>
-      )}
+      ) : null}
     </View>
   );
 }

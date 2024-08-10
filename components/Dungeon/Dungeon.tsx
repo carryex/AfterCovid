@@ -3,29 +3,23 @@ import { Position } from '@/types';
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 
+
 interface DungeonProps {
+  dungeonConfig: {
+    name: string;
+    size: number;
+    walls: Set<string>;
+    startRoom: { x: number, y: number };
+  };
   dungeonPosition: Position;
   movePlayer: (dx: number, dy: number) => void;
 }
 
-const DUNGEON_SIZE = 100;
 const VISIBLE_RADIUS = 3;
 
-// Функция для генерации случайных стен
-const generateWalls = () => {
-  const walls = new Set<string>();
-  // Например, добавим случайные стены
-  for (let i = 0; i < 200; i++) { // Добавим 200 случайных стен
-    const x = Math.floor(Math.random() * DUNGEON_SIZE);
-    const y = Math.floor(Math.random() * DUNGEON_SIZE);
-    walls.add(`${x},${y}`);
-  }
-  return walls;
-};
+const Dungeon: React.FC<DungeonProps> = ({ dungeonConfig, dungeonPosition, movePlayer }) => {
+  const { size, walls } = dungeonConfig;
 
-const walls = generateWalls();
-
-const Dungeon: React.FC<DungeonProps> = ({ dungeonPosition, movePlayer }) => {
   const isAdjacent = (x: number, y: number) => {
     const dx = Math.abs(x - dungeonPosition.x);
     const dy = Math.abs(y - dungeonPosition.y);
@@ -38,7 +32,7 @@ const Dungeon: React.FC<DungeonProps> = ({ dungeonPosition, movePlayer }) => {
     const visibleRooms = [];
     for (let y = dungeonPosition.y - VISIBLE_RADIUS; y <= dungeonPosition.y + VISIBLE_RADIUS; y++) {
       for (let x = dungeonPosition.x - VISIBLE_RADIUS; x <= dungeonPosition.x + VISIBLE_RADIUS; x++) {
-        if (x >= 0 && y >= 0 && x < DUNGEON_SIZE && y < DUNGEON_SIZE) {
+        if (x >= 0 && y >= 0 && x < size && y < size) {
           const isCurrent = x === dungeonPosition.x && y === dungeonPosition.y;
           const canMove = isAdjacent(x, y) && !isWall(x, y);
           if (isWall(x, y)) {
