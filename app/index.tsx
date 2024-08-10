@@ -22,6 +22,7 @@ enum GameState {
 export default function Index() {
   const [playerPosition, setPlayerPosition] = useState<Position>({ x: Math.floor(GRID_SIZE / 2), y: Math.floor(GRID_SIZE / 2) });
   const [gameState, setGameState] = useState<GameState>(GameState.World);
+  const [landscape, setLandscape] = useState(generateLandscape());
   const [currentDungeon, setCurrentDungeon] = useState<null | typeof dungeonsConfig[0]>(null);
   const [dungeonPosition, setDungeonPosition] = useState<Position>({ x: 50, y: 50 });
   const [screenSize, setScreenSize] = useState(getScreenSize());
@@ -58,14 +59,30 @@ export default function Index() {
         size: 100,
         walls: new Set(), // Без стен для случайного подземелья
         startRoom: { x: 50, y: 50 },
+        exitRoom: { x: 50, y: 50 }, // Выход там же, где вход
+        surfaceLocation: { x: 50, y: 51 }, // Возвращение на поверхность в ту же точку
       });
       setDungeonPosition({ x: 50, y: 50 });
     } else {
-      // Выбор подземелья из заранее созданных
-      const dungeonIndex = (playerPosition.x - 50) + (playerPosition.y - 50);
-      const selectedDungeon = dungeonsConfig[dungeonIndex % dungeonsConfig.length];
-      setCurrentDungeon(selectedDungeon);
-      setDungeonPosition(selectedDungeon.startRoom);
+      // Поиск подземелья по точным координатам
+      const selectedDungeon = dungeonsConfig.find(
+        dungeon => dungeon.surfaceLocation.x === playerPosition.x && dungeon.surfaceLocation.y === playerPosition.y
+      );
+
+      if (selectedDungeon) {
+        setCurrentDungeon(selectedDungeon);
+        setDungeonPosition(selectedDungeon.startRoom);
+      } else {
+        console.warn('No dungeon found at this location');
+      }
+    }
+  };
+
+  const exitDungeon = () => {
+    if (currentDungeon) {
+      setPlayerPosition(currentDungeon.surfaceLocation);
+      setGameState(GameState.World);
+      setCurrentDungeon(null); // Сбрасываем текущее подземелье
     }
   };
 
@@ -84,7 +101,12 @@ export default function Index() {
           <Text>Dungeon: {currentDungeon.name}</Text>
           <Text>Dungeon Position: ({dungeonPosition.x}, {dungeonPosition.y})</Text>
           <View style={[styles.landscapeContainer, { width: screenSize, height: screenSize }]}>
-            <Dungeon dungeonConfig={currentDungeon} dungeonPosition={dungeonPosition} movePlayer={movePlayer} />
+            <Dungeon
+              dungeonConfig={currentDungeon}
+              dungeonPosition={dungeonPosition}
+              movePlayer={movePlayer}
+              exitDungeon={exitDungeon}
+            />
           </View>
         </>
       ) : null}

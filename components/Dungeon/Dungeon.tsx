@@ -10,15 +10,18 @@ interface DungeonProps {
     size: number;
     walls: Set<string>;
     startRoom: { x: number, y: number };
+    exitRoom: { x: number, y: number };
+    surfaceLocation: Position;
   };
   dungeonPosition: Position;
   movePlayer: (dx: number, dy: number) => void;
+  exitDungeon: () => void;
 }
 
 const VISIBLE_RADIUS = 3;
 
-const Dungeon: React.FC<DungeonProps> = ({ dungeonConfig, dungeonPosition, movePlayer }) => {
-  const { size, walls } = dungeonConfig;
+const Dungeon: React.FC<DungeonProps> = ({ dungeonConfig, dungeonPosition, movePlayer, exitDungeon }) => {
+  const { size, walls, exitRoom } = dungeonConfig;
 
   const isAdjacent = (x: number, y: number) => {
     const dx = Math.abs(x - dungeonPosition.x);
@@ -27,6 +30,7 @@ const Dungeon: React.FC<DungeonProps> = ({ dungeonConfig, dungeonPosition, moveP
   };
 
   const isWall = (x: number, y: number) => walls.has(`${x},${y}`);
+  const isExitRoom = dungeonPosition.x === exitRoom.x && dungeonPosition.y === exitRoom.y;
 
   const renderDungeon = () => {
     const visibleRooms = [];
@@ -75,10 +79,25 @@ const Dungeon: React.FC<DungeonProps> = ({ dungeonConfig, dungeonPosition, moveP
     return <View style={styles.dungeonMap}>{visibleRooms}</View>;
   };
 
-  return renderDungeon();
+  return (
+    <View style={styles.container}>
+      {isExitRoom && (
+        <TouchableOpacity onPress={exitDungeon} style={styles.exitButton}>
+          <Text style={styles.exitButtonText}>Exit to Surface</Text>
+        </TouchableOpacity>
+      )}
+      {renderDungeon()}
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+    width: '100%',
+    height: '100%',
+  },
   dungeonMap: {
     flex: 1,
     position: 'relative',
@@ -103,6 +122,19 @@ const styles = StyleSheet.create({
   roomText: {
     color: '#fff',
     fontSize: 10,
+  },
+  exitButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    padding: 10,
+    backgroundColor: 'red',
+    borderRadius: 5,
+    zIndex: 1000,
+  },
+  exitButtonText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
 
