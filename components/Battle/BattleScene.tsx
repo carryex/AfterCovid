@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ScrollView, Button } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
-import { Position } from '@/types';
+import { Position, PlayerStats } from '@/types';
 
 interface BattleSceneProps {
   onExitBattle: () => void;
@@ -32,6 +32,19 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
   const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
   const [turnCount, setTurnCount] = useState(1);
   const [isPlanningPhase, setIsPlanningPhase] = useState(true);
+
+  // Инициализация характеристик игрока
+  const [playerStats] = useState<PlayerStats>({
+    level: 1,
+    strength: 10,
+    agility: 10,
+    intuition: 10,
+    endurance: 10,
+    accuracy: 10,
+    intelligence: 10,
+    health: 100, // Начальное здоровье
+    mana: 50, // Начальный уровень маны
+  });
 
   useEffect(() => {
     const { width, height } = Dimensions.get('window');
@@ -141,6 +154,18 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
         <Button title="End Turn" onPress={handleEndTurn} />
         <Button title="Exit Battle" onPress={onExitBattle} />
       </View>
+      <View style={styles.statsContainer}>
+        <Text style={styles.statsTitle}>Player Stats</Text>
+        <Text style={styles.statsText}>Level: {playerStats.level}</Text>
+        <Text style={styles.statsText}>Strength: {playerStats.strength}</Text>
+        <Text style={styles.statsText}>Agility: {playerStats.agility}</Text>
+        <Text style={styles.statsText}>Intuition: {playerStats.intuition}</Text>
+        <Text style={styles.statsText}>Endurance: {playerStats.endurance}</Text>
+        <Text style={styles.statsText}>Accuracy: {playerStats.accuracy}</Text>
+        <Text style={styles.statsText}>Intelligence: {playerStats.intelligence}</Text>
+        <Text style={styles.statsText}>Health: {playerStats.health}</Text>
+        <Text style={styles.statsText}>Mana: {playerStats.mana}</Text>
+      </View>
     </View>
   );
 };
@@ -168,7 +193,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
-    rowGap: 10
+    rowGap: 5
   },
   turnText: {
     color: '#fff',
@@ -180,6 +205,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 10,
   },
+  statsContainer: {
+    position: 'absolute',
+    top: 180,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 10,
+    borderRadius: 5,
+    color: '#fff',
+    rowGap: 5
+  },
+  statsTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  statsText: {
+    color: '#fff'
+  }
 });
 
 export default BattleScene;
