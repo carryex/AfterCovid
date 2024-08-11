@@ -3,7 +3,6 @@ export interface Position {
   x: number;
   y: number;
 }
-
 export interface PlayerStats {
   level: number;
   strength: number;
@@ -14,4 +13,5 @@ export interface PlayerStats {
   intelligence: number;
   health: number;
   mana: number;
+  currentWeight: number; // Текущий вес снаряжения
 }

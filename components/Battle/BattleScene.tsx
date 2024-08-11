@@ -3,15 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ScrollView, Button } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { Position, PlayerStats } from '@/types';
+import { calculateActionPoints, calculateCarryingCapacity } from '@/utils/calculateStats';
 
 interface BattleSceneProps {
   onExitBattle: () => void;
 }
 
-const TOTAL_ROWS = 50; // Общее количество строк в сетке
-const TOTAL_COLS = 100; // Общее количество столбцов в сетке
-const HEX_SIZE = 40; // Размер стороны шестиугольника
-const TURN_DURATION = 30; // Длительность хода в секундах
+const TOTAL_ROWS = 50;
+const TOTAL_COLS = 100;
+const HEX_SIZE = 40;
+const TURN_DURATION = 30;
 
 // Функция для создания шестиугольника с равными сторонами
 const createHexagonPoints = (size: number) => {
@@ -33,7 +34,6 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
   const [turnCount, setTurnCount] = useState(1);
   const [isPlanningPhase, setIsPlanningPhase] = useState(true);
 
-  // Инициализация характеристик игрока
   const [playerStats] = useState<PlayerStats>({
     level: 1,
     strength: 10,
@@ -42,9 +42,13 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
     endurance: 10,
     accuracy: 10,
     intelligence: 10,
-    health: 100, // Начальное здоровье
-    mana: 50, // Начальный уровень маны
+    health: 100,
+    mana: 50,
+    currentWeight: 20, // Текущий вес снаряжения, например, 20
   });
+
+  const carryingCapacity = calculateCarryingCapacity(playerStats.strength, playerStats.endurance);
+  const actionPoints = calculateActionPoints(playerStats.agility, playerStats.endurance, playerStats.currentWeight, carryingCapacity);
 
   useEffect(() => {
     const { width, height } = Dimensions.get('window');
@@ -129,7 +133,6 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
     return hexagons;
   };
 
-  // Рассчитываем размеры всей сетки
   const gridWidth = TOTAL_COLS * HEX_SIZE * 1.5 + HEX_SIZE;
   const gridHeight = TOTAL_ROWS * HEX_SIZE * Math.sqrt(3) + HEX_SIZE;
 
@@ -165,6 +168,9 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
         <Text style={styles.statsText}>Intelligence: {playerStats.intelligence}</Text>
         <Text style={styles.statsText}>Health: {playerStats.health}</Text>
         <Text style={styles.statsText}>Mana: {playerStats.mana}</Text>
+        <Text style={styles.statsText}>Carrying Capacity: {carryingCapacity}</Text>
+        <Text style={styles.statsText}>Current Weight: {playerStats.currentWeight}</Text>
+        <Text style={styles.statsText}>Action Points: {actionPoints}</Text>
       </View>
     </View>
   );
