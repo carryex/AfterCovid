@@ -1,3 +1,4 @@
+// app/index.tsx
 import React, { useState, useEffect } from 'react';
 import { Text, View, StyleSheet, Dimensions } from 'react-native';
 import { Position } from '../types';
@@ -5,7 +6,8 @@ import { generateLandscape, GRID_SIZE } from '../constants/generateLandscape';
 import Dungeon from '@/components/Dungeon/Dungeon';
 import MiniMap from '@/components/World/MiniMap';
 import World from '@/components/World/World';
-import dungeonsConfig from '@/constants/dungeonsConfig';
+import BattleScene from '@/components/Battle/BattleScene';
+import { dungeonsConfig } from '@/constants/dungeonsConfig';
 
 
 const getScreenSize = () => {
@@ -16,7 +18,8 @@ const getScreenSize = () => {
 
 enum GameState {
   World,
-  Dungeon
+  Dungeon,
+  Battle
 }
 
 export default function Index() {
@@ -44,7 +47,13 @@ export default function Index() {
       setDungeonPosition(prevPosition => {
         const newX = prevPosition.x + dx;
         const newY = prevPosition.y + dy;
-        return { x: Math.min(Math.max(newX, 0), currentDungeon.size - 1), y: Math.min(Math.max(newY, 0), currentDungeon.size - 1) };
+        const newPosition = { x: Math.min(Math.max(newX, 0), currentDungeon.size - 1), y: Math.min(Math.max(newY, 0), currentDungeon.size - 1) };
+
+        if (!currentDungeon.safeRooms.has(`${newPosition.x},${newPosition.y}`)) {
+          setGameState(GameState.Battle);
+        }
+
+        return newPosition;
       });
     }
   };
@@ -52,29 +61,15 @@ export default function Index() {
   const handleMineClick = () => {
     setGameState(GameState.Dungeon);
 
-    if (playerPosition.x === 50 && playerPosition.y === 51) {
-      // Генерация случайного подземелья
-      setCurrentDungeon({
-        name: 'Generated Dungeon',
-        size: 100,
-        walls: new Set(), // Без стен для случайного подземелья
-        startRoom: { x: 50, y: 50 },
-        exitRoom: { x: 50, y: 50 }, // Выход там же, где вход
-        surfaceLocation: { x: 50, y: 51 }, // Возвращение на поверхность в ту же точку
-      });
-      setDungeonPosition({ x: 50, y: 50 });
-    } else {
-      // Поиск подземелья по точным координатам
-      const selectedDungeon = dungeonsConfig.find(
-        dungeon => dungeon.surfaceLocation.x === playerPosition.x && dungeon.surfaceLocation.y === playerPosition.y
-      );
+    const selectedDungeon = dungeonsConfig.find(
+      dungeon => dungeon.surfaceLocation.x === playerPosition.x && dungeon.surfaceLocation.y === playerPosition.y
+    );
 
-      if (selectedDungeon) {
-        setCurrentDungeon(selectedDungeon);
-        setDungeonPosition(selectedDungeon.startRoom);
-      } else {
-        console.warn('No dungeon found at this location');
-      }
+    if (selectedDungeon) {
+      setCurrentDungeon(selectedDungeon);
+      setDungeonPosition(selectedDungeon.startRoom);
+    } else {
+      console.warn('No dungeon found at this location');
     }
   };
 
@@ -84,6 +79,10 @@ export default function Index() {
       setGameState(GameState.World);
       setCurrentDungeon(null); // Сбрасываем текущее подземелье
     }
+  };
+
+  const exitBattle = () => {
+    setGameState(GameState.Dungeon);
   };
 
   return (
@@ -96,7 +95,7 @@ export default function Index() {
           </View>
           <MiniMap playerPosition={playerPosition} movePlayer={movePlayer} />
         </>
-      ) : currentDungeon ? (
+      ) : gameState === GameState.Dungeon && currentDungeon ? (
         <>
           <Text>Dungeon: {currentDungeon.name}</Text>
           <Text>Dungeon Position: ({dungeonPosition.x}, {dungeonPosition.y})</Text>
@@ -109,6 +108,8 @@ export default function Index() {
             />
           </View>
         </>
+      ) : gameState === GameState.Battle ? (
+        <BattleScene onExitBattle={exitBattle} />
       ) : null}
     </View>
   );
