@@ -4,6 +4,7 @@ import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ScrollView, Butto
 import Svg, { Polygon } from 'react-native-svg';
 import { Position, PlayerStats } from '@/types';
 import { calculateActionPoints, calculateCarryingCapacity } from '@/utils/calculateStats';
+import { axialDistance, calculateMovementCost, getReachableHexes, maxStepsForAP } from '@/utils/calculateMovement';
 
 interface BattleSceneProps {
   onExitBattle: () => void;
@@ -14,11 +15,10 @@ const TOTAL_COLS = 100;
 const HEX_SIZE = 40;
 const TURN_DURATION = 30;
 
-// Функция для создания шестиугольника с равными сторонами
 const createHexagonPoints = (size: number) => {
   const points = [];
   for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i; // Угол 60 градусов для каждой точки
+    const angle = (Math.PI / 3) * i;
     const x = size * Math.cos(angle);
     const y = size * Math.sin(angle);
     points.push(`${x},${y}`);
@@ -44,11 +44,14 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
     intelligence: 10,
     health: 100,
     mana: 50,
-    currentWeight: 20, // Текущий вес снаряжения, например, 20
+    currentWeight: 20,
   });
 
   const carryingCapacity = calculateCarryingCapacity(playerStats.strength, playerStats.endurance);
   const actionPoints = calculateActionPoints(playerStats.agility, playerStats.endurance, playerStats.currentWeight, carryingCapacity);
+
+  const maxSteps = maxStepsForAP(actionPoints);
+  const reachableHexes = getReachableHexes(playerPosition, maxSteps, TOTAL_ROWS, TOTAL_COLS);
 
   useEffect(() => {
     const { width, height } = Dimensions.get('window');
@@ -67,7 +70,11 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
 
   const endTurn = () => {
     if (selectedHex) {
-      setPlayerPosition(selectedHex);
+      const distance = axialDistance(playerPosition, selectedHex);
+      const movementCost = calculateMovementCost(distance);
+      if (movementCost <= actionPoints) {
+        setPlayerPosition(selectedHex);
+      }
     }
     setTurnTimer(TURN_DURATION);
     setSelectedHex(null);
@@ -76,19 +83,16 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
   };
 
   const handleHexClick = (x: number, y: number) => {
-    if (isPlanningPhase) {
+    if (isPlanningPhase && reachableHexes.some(hex => hex.x === x && hex.y === y)) {
       setSelectedHex({ x, y });
     }
-  };
-
-  const handleEndTurn = () => {
-    setIsPlanningPhase(false);
   };
 
   const renderHexagon = (x: number, y: number) => {
     const isPlayer = playerPosition.x === x && playerPosition.y === y;
     const isSelected = selectedHex?.x === x && selectedHex?.y === y;
-    const color = isPlayer ? 'blue' : isSelected ? 'green' : 'gray';
+    const isReachable = reachableHexes.some(hex => hex.x === x && hex.y === y);
+    const color = isPlayer ? 'blue' : isSelected ? 'green' : isReachable ? 'lightblue' : 'gray';
     const points = createHexagonPoints(HEX_SIZE);
 
     const xOffset = x * HEX_SIZE * 1.5;
@@ -154,7 +158,7 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
       <View style={styles.turnInfo}>
         <Text style={styles.turnText}>Turn: {turnCount}</Text>
         <Text style={styles.timerText}>Time Left: {turnTimer}s</Text>
-        <Button title="End Turn" onPress={handleEndTurn} />
+        <Button title="End Turn" onPress={endTurn} />
         <Button title="Exit Battle" onPress={onExitBattle} />
       </View>
       <View style={styles.statsContainer}>
