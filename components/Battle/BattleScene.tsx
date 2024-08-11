@@ -1,6 +1,6 @@
 // components/Battle/BattleScene.tsx
 import React, { useState, useEffect } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ScrollView } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ScrollView, Button } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { Position } from '@/types';
 
@@ -11,6 +11,7 @@ interface BattleSceneProps {
 const TOTAL_ROWS = 50; // Общее количество строк в сетке
 const TOTAL_COLS = 100; // Общее количество столбцов в сетке
 const HEX_SIZE = 40; // Размер стороны шестиугольника
+const TURN_DURATION = 30; // Длительность хода в секундах
 
 // Функция для создания шестиугольника с равными сторонами
 const createHexagonPoints = (size: number) => {
@@ -27,15 +28,50 @@ const createHexagonPoints = (size: number) => {
 const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
   const [playerPosition, setPlayerPosition] = useState<Position>({ x: 0, y: 0 });
   const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
+  const [selectedHex, setSelectedHex] = useState<Position | null>(null);
+  const [turnTimer, setTurnTimer] = useState(TURN_DURATION);
+  const [turnCount, setTurnCount] = useState(1);
+  const [isPlanningPhase, setIsPlanningPhase] = useState(true);
 
   useEffect(() => {
     const { width, height } = Dimensions.get('window');
     setScreenSize({ width, height });
   }, []);
 
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isPlanningPhase && turnTimer > 0) {
+      timer = setTimeout(() => setTurnTimer(turnTimer - 1), 1000);
+    } else if (turnTimer === 0 || !isPlanningPhase) {
+      endTurn();
+    }
+    return () => clearTimeout(timer);
+  }, [turnTimer, isPlanningPhase]);
+
+  const endTurn = () => {
+    if (selectedHex) {
+      setPlayerPosition(selectedHex);
+    }
+    setTurnTimer(TURN_DURATION);
+    setSelectedHex(null);
+    setIsPlanningPhase(true);
+    setTurnCount(turnCount + 1);
+  };
+
+  const handleHexClick = (x: number, y: number) => {
+    if (isPlanningPhase) {
+      setSelectedHex({ x, y });
+    }
+  };
+
+  const handleEndTurn = () => {
+    setIsPlanningPhase(false);
+  };
+
   const renderHexagon = (x: number, y: number) => {
     const isPlayer = playerPosition.x === x && playerPosition.y === y;
-    const color = isPlayer ? 'blue' : 'gray';
+    const isSelected = selectedHex?.x === x && selectedHex?.y === y;
+    const color = isPlayer ? 'blue' : isSelected ? 'green' : 'gray';
     const points = createHexagonPoints(HEX_SIZE);
 
     const xOffset = x * HEX_SIZE * 1.5;
@@ -51,7 +87,7 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
           width: HEX_SIZE * 2,
           height: HEX_SIZE * Math.sqrt(3),
         }}
-        onPress={() => setPlayerPosition({ x, y })}
+        onPress={() => handleHexClick(x, y)}
       >
         <Svg
           height={HEX_SIZE * Math.sqrt(3)}
@@ -62,7 +98,7 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
             points={points}
             fill={color}
             stroke="black"
-            strokeWidth={1} // Регулировка толщины линии
+            strokeWidth={1}
           />
         </Svg>
         <Text style={styles.hexagonText}>{`${x},${y}`}</Text>
@@ -81,15 +117,15 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
   };
 
   // Рассчитываем размеры всей сетки
-  const gridWidth = TOTAL_COLS * HEX_SIZE * 1.5 + HEX_SIZE; // Увеличиваем ширину на HEX_SIZE для учета смещения последнего столбца
-  const gridHeight = TOTAL_ROWS * HEX_SIZE * Math.sqrt(3) + HEX_SIZE; // Увеличиваем высоту на полный HEX_SIZE для полного отображения нижнего ряда
+  const gridWidth = TOTAL_COLS * HEX_SIZE * 1.5 + HEX_SIZE;
+  const gridHeight = TOTAL_ROWS * HEX_SIZE * Math.sqrt(3) + HEX_SIZE;
 
   return (
     <View style={styles.container}>
       <ScrollView
         horizontal
         style={{ width: screenSize.width, height: screenSize.height }}
-        contentContainerStyle={{ width: gridWidth + HEX_SIZE / 2 }} // Добавляем дополнительное пространство справа
+        contentContainerStyle={{ width: gridWidth + HEX_SIZE / 2 }}
       >
         <ScrollView
           contentContainerStyle={{ height: gridHeight }}
@@ -99,9 +135,12 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
           </View>
         </ScrollView>
       </ScrollView>
-      <TouchableOpacity onPress={onExitBattle} style={styles.exitButton}>
-        <Text style={styles.exitButtonText}>Exit Battle</Text>
-      </TouchableOpacity>
+      <View style={styles.turnInfo}>
+        <Text style={styles.turnText}>Turn: {turnCount}</Text>
+        <Text style={styles.timerText}>Time Left: {turnTimer}s</Text>
+        <Button title="End Turn" onPress={handleEndTurn} />
+        <Button title="Exit Battle" onPress={onExitBattle} />
+      </View>
     </View>
   );
 };
@@ -121,18 +160,25 @@ const styles = StyleSheet.create({
     left: '50%',
     transform: [{ translateX: -10 }, { translateY: -10 }],
   },
-  exitButton: {
+  turnInfo: {
     position: 'absolute',
     top: 10,
     right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     padding: 10,
-    backgroundColor: 'red',
     borderRadius: 5,
-    zIndex: 1000,
+    alignItems: 'center',
+    rowGap: 10
   },
-  exitButtonText: {
+  turnText: {
     color: '#fff',
     fontSize: 16,
+    marginBottom: 5,
+  },
+  timerText: {
+    color: '#fff',
+    fontSize: 14,
+    marginBottom: 10,
   },
 });
 
