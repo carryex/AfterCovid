@@ -1,6 +1,6 @@
 // components/Battle/BattleScene.tsx
-import React, { useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, TouchableOpacity, StyleSheet, Text, Dimensions, ScrollView } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { Position } from '@/types';
 
@@ -8,7 +8,8 @@ interface BattleSceneProps {
   onExitBattle: () => void;
 }
 
-const GRID_SIZE = 10; // Размер сетки 10x10
+const TOTAL_ROWS = 50; // Общее количество строк в сетке
+const TOTAL_COLS = 100; // Общее количество столбцов в сетке
 const HEX_SIZE = 40; // Размер стороны шестиугольника
 
 // Функция для создания шестиугольника с равными сторонами
@@ -25,14 +26,12 @@ const createHexagonPoints = (size: number) => {
 
 const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
   const [playerPosition, setPlayerPosition] = useState<Position>({ x: 0, y: 0 });
+  const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
 
-  const movePlayer = (dx: number, dy: number) => {
-    setPlayerPosition(prevPosition => {
-      const newX = Math.max(0, Math.min(GRID_SIZE - 1, prevPosition.x + dx));
-      const newY = Math.max(0, Math.min(GRID_SIZE - 1, prevPosition.y + dy));
-      return { x: newX, y: newY };
-    });
-  };
+  useEffect(() => {
+    const { width, height } = Dimensions.get('window');
+    setScreenSize({ width, height });
+  }, []);
 
   const renderHexagon = (x: number, y: number) => {
     const isPlayer = playerPosition.x === x && playerPosition.y === y;
@@ -52,7 +51,7 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
           width: HEX_SIZE * 2,
           height: HEX_SIZE * Math.sqrt(3),
         }}
-        onPress={() => movePlayer(x - playerPosition.x, y - playerPosition.y)}
+        onPress={() => setPlayerPosition({ x, y })}
       >
         <Svg
           height={HEX_SIZE * Math.sqrt(3)}
@@ -73,17 +72,33 @@ const BattleScene: React.FC<BattleSceneProps> = ({ onExitBattle }) => {
 
   const renderGrid = () => {
     const hexagons = [];
-    for (let y = 0; y < GRID_SIZE; y++) {
-      for (let x = 0; x < GRID_SIZE; x++) {
+    for (let y = 0; y < TOTAL_ROWS; y++) {
+      for (let x = 0; x < TOTAL_COLS; x++) {
         hexagons.push(renderHexagon(x, y));
       }
     }
     return hexagons;
   };
 
+  // Рассчитываем размеры всей сетки
+  const gridWidth = TOTAL_COLS * HEX_SIZE * 1.5 + HEX_SIZE; // Увеличиваем ширину на HEX_SIZE для учета смещения последнего столбца
+  const gridHeight = TOTAL_ROWS * HEX_SIZE * Math.sqrt(3) + HEX_SIZE; // Увеличиваем высоту на полный HEX_SIZE для полного отображения нижнего ряда
+
   return (
     <View style={styles.container}>
-      <View style={styles.gridContainer}>{renderGrid()}</View>
+      <ScrollView
+        horizontal
+        style={{ width: screenSize.width, height: screenSize.height }}
+        contentContainerStyle={{ width: gridWidth + HEX_SIZE / 2 }} // Добавляем дополнительное пространство справа
+      >
+        <ScrollView
+          contentContainerStyle={{ height: gridHeight }}
+        >
+          <View style={{ width: gridWidth + HEX_SIZE / 2, height: gridHeight, position: 'relative' }}>
+            {renderGrid()}
+          </View>
+        </ScrollView>
+      </ScrollView>
       <TouchableOpacity onPress={onExitBattle} style={styles.exitButton}>
         <Text style={styles.exitButtonText}>Exit Battle</Text>
       </TouchableOpacity>
@@ -96,11 +111,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    position: 'relative',
-  },
-  gridContainer: {
-    width: '100%',
-    height: '100%',
     position: 'relative',
   },
   hexagonText: {
